@@ -59,6 +59,60 @@ pub fn scan(path: &Path, prog: &Progress) -> Node {
     Node { name, size, is_dir: true, children }
 }
 
+pub fn find_node<'a>(node: &'a Node, rel: &[String]) -> Option<&'a Node> {
+    match rel.split_first() {
+        None => Some(node),
+        Some((head, tail)) => node
+            .children
+            .iter()
+            .find(|c| c.name == *head)
+            .and_then(|c| find_node(c, tail)),
+    }
+}
+
+pub fn remove_node(node: &mut Node, rel: &[String]) -> Option<Node> {
+    let (head, tail) = rel.split_first()?;
+    if tail.is_empty() {
+        let idx = node.children.iter().position(|c| c.name == *head)?;
+        let removed = node.children.remove(idx);
+        node.size -= removed.size;
+        Some(removed)
+    } else {
+        let child = node.children.iter_mut().find(|c| c.name == *head)?;
+        let removed = remove_node(child, tail)?;
+        node.size -= removed.size;
+        Some(removed)
+    }
+}
+
+pub fn rename_node(node: &mut Node, rel: &[String], new_name: &str) -> bool {
+    let Some((head, tail)) = rel.split_first() else { return false };
+    let Some(child) = node.children.iter_mut().find(|c| c.name == *head) else { return false };
+    if tail.is_empty() {
+        child.name = new_name.to_string();
+        true
+    } else {
+        rename_node(child, tail, new_name)
+    }
+}
+
+pub fn insert_node(node: &mut Node, dest_rel: &[String], new: Node) -> bool {
+    node.size += new.size;
+    match dest_rel.split_first() {
+        None => {
+            node.children.push(new);
+            node.children.sort_by(|a, b| b.size.cmp(&a.size));
+            true
+        }
+        Some((head, tail)) => {
+            match node.children.iter_mut().find(|c| c.name == *head) {
+                Some(child) => insert_node(child, tail, new),
+                None => false, // caller guarantees dest exists via find_node
+            }
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -100,5 +154,52 @@ mod tests {
         scan(dir.path(), &prog);
         assert_eq!(prog.files.load(Ordering::Relaxed), 3);
         assert_eq!(prog.bytes.load(Ordering::Relaxed), 1502);
+    }
+
+    fn scanned() -> (tempfile::TempDir, Node) {
+        let dir = fixture();
+        let prog = Progress::default();
+        let root = scan(dir.path(), &prog);
+        (dir, root)
+    }
+
+    fn rel(parts: &[&str]) -> Vec<String> {
+        parts.iter().map(|s| s.to_string()).collect()
+    }
+
+    #[test]
+    fn find_node_walks_path() {
+        let (_d, root) = scanned();
+        assert_eq!(find_node(&root, &[]).unwrap().size, 1502);
+        assert_eq!(find_node(&root, &rel(&["sub", "mid.dat"])).unwrap().size, 500);
+        assert!(find_node(&root, &rel(&["nope"])).is_none());
+    }
+
+    #[test]
+    fn remove_node_updates_ancestor_sizes() {
+        let (_d, mut root) = scanned();
+        let removed = remove_node(&mut root, &rel(&["sub", "mid.dat"])).unwrap();
+        assert_eq!(removed.size, 500);
+        assert_eq!(root.size, 1002);
+        assert_eq!(find_node(&root, &rel(&["sub"])).unwrap().size, 0);
+    }
+
+    #[test]
+    fn rename_node_keeps_size() {
+        let (_d, mut root) = scanned();
+        assert!(rename_node(&mut root, &rel(&["big.bin"]), "huge.bin"));
+        assert!(find_node(&root, &rel(&["huge.bin"])).is_some());
+        assert_eq!(root.size, 1502);
+    }
+
+    #[test]
+    fn move_via_remove_then_insert() {
+        let (_d, mut root) = scanned();
+        let node = remove_node(&mut root, &rel(&["big.bin"])).unwrap();
+        assert!(insert_node(&mut root, &rel(&["sub"]), node));
+        assert_eq!(root.size, 1502);
+        let sub = find_node(&root, &rel(&["sub"])).unwrap();
+        assert_eq!(sub.size, 1500);
+        assert_eq!(sub.children[0].name, "big.bin"); // re-sorted, biggest first
     }
 }
