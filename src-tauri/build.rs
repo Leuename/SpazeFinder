@@ -1,6 +1,8 @@
 fn main() {
-    let windows = tauri_build::WindowsAttributes::new().app_manifest(
-        r#"<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+    let mut attrs = tauri_build::Attributes::new();
+    if std::env::var("PROFILE").as_deref() == Ok("release") {
+        let windows = tauri_build::WindowsAttributes::new().app_manifest(
+            r#"<assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
@@ -9,7 +11,8 @@ fn main() {
     </security>
   </trustInfo>
 </assembly>"#,
-    );
-    tauri_build::try_build(tauri_build::Attributes::new().windows_attributes(windows))
-        .expect("failed to run tauri-build");
+        );
+        attrs = attrs.windows_attributes(windows);
+    }
+    tauri_build::try_build(attrs).expect("failed to run tauri-build");
 }
