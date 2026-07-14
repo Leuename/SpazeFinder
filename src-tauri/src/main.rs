@@ -1,5 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod scan;
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
