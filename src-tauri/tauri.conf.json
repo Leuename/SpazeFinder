@@ -1,0 +1,17 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "SpaceScanner",
+  "version": "0.1.0",
+  "identifier": "club.formura.spacescanner",
+  "build": {
+    "frontendDist": "../src"
+  },
+  "app": {
+    "withGlobalTauri": true,
+    "windows": [
+      { "title": "SpaceScanner", "width": 1000, "height": 700, "label": "main" }
+    ],
+    "security": { "csp": null }
+  },
+  "bundle": { "active": false }
+}
