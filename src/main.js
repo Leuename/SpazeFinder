@@ -164,8 +164,16 @@ function startRename(row, path) {
     input.select();
   }
   input.onclick = (e) => e.stopPropagation();
+  let finished = false; // guards blur firing after Enter/Escape already handled it
+  input.onblur = () => {
+    if (!finished) {
+      finished = true;
+      renderTree();
+    }
+  };
   input.onkeydown = async (e) => {
     if (e.key === "Enter") {
+      finished = true;
       try {
         await invoke("rename", { path, newName: input.value });
         await renderTree();
@@ -174,6 +182,7 @@ function startRename(row, path) {
         await renderTree();
       }
     } else if (e.key === "Escape") {
+      finished = true;
       renderTree();
     }
   };
