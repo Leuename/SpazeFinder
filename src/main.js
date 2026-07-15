@@ -132,7 +132,11 @@ function showMenu(ev, path, row) {
       } else if (act === "rename") {
         startRename(row, path);
       } else if (act === "move") {
-        const dest = await openDialog({ directory: true, title: "Move to folder" });
+        const dest = await openDialog({
+          directory: true,
+          title: "Move to folder",
+          defaultPath: path.slice(0, path.lastIndexOf("\\")) || rootPath,
+        });
         if (dest) {
           await invoke("move_item", { path, destDir: dest });
           await renderTree();
@@ -153,7 +157,12 @@ function startRename(row, path) {
   span.textContent = "";
   span.appendChild(input);
   input.focus();
-  input.select();
+  const dot = input.value.lastIndexOf(".");
+  if (!row.classList.contains("dir") && dot > 0) {
+    input.setSelectionRange(0, dot); // highlight name only, keep extension
+  } else {
+    input.select();
+  }
   input.onclick = (e) => e.stopPropagation();
   input.onkeydown = async (e) => {
     if (e.key === "Enter") {
