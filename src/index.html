@@ -6,12 +6,20 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <section id="drives" hidden></section>
+  <button id="theme-toggle" aria-label="Toggle dark or light theme">
+    <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm0 14.5V1.5a6.5 6.5 0 0 1 0 13z"/></svg>
+  </button>
+
+  <section id="drives" hidden>
+    <h1>Select a drive</h1>
+    <div class="drive-list"></div>
+  </section>
 
   <section id="progress" hidden>
-    <h2>Scanning…</h2>
-    <div class="spinner"></div>
-    <p id="prog-text">0 files · 0 B</p>
+    <span id="scan-target">Scanning</span>
+    <span id="prog-bytes">0 B</span>
+    <span id="prog-files">0 files</span>
+    <div class="sweep" role="progressbar" aria-label="Scan in progress"></div>
   </section>
 
   <section id="main" hidden>

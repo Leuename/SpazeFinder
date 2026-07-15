@@ -1,27 +1,306 @@
+/* SpaceScanner — quiet instrument.
+   Monochrome base, one gradient vein (teal → lime) carrying meaning:
+   size bars, scan progress, drive usage. Nothing else gets color. */
+
+:root {
+  --bg: #eff0d1;
+  --ink: oklch(0.2 0.01 110);
+  --muted: oklch(0.45 0.02 110);
+  --hairline: oklch(0.85 0.04 110);
+  --hover: oklch(0.92 0.05 110);
+  --track: oklch(0.88 0.045 110);
+  --grad-a: oklch(0.62 0.13 195);
+  --grad-b: oklch(0.7 0.2 130);
+  --danger: oklch(0.55 0.19 25);
+  --focus: oklch(0.62 0.13 195);
+  --shadow: 0 8px 24px oklch(0 0 0 / 0.12);
+}
+
+[data-theme="dark"] {
+  --bg: #262730;
+  --ink: oklch(0.95 0.005 280);
+  --muted: oklch(0.74 0.015 280);
+  --hairline: oklch(0.35 0.02 280);
+  --hover: oklch(0.3 0.02 280);
+  --track: oklch(0.33 0.02 280);
+  --grad-a: oklch(0.75 0.14 195);
+  --grad-b: oklch(0.85 0.23 130);
+  --danger: oklch(0.7 0.19 25);
+  --focus: oklch(0.75 0.14 195);
+  --shadow: 0 8px 24px oklch(0 0 0 / 0.5);
+}
+
+/* ---------- base ---------- */
+
 * { box-sizing: border-box; margin: 0; }
-body { font: 13px/1.5 "Segoe UI", sans-serif; background: #1e1e24; color: #e6e6ea; height: 100vh; overflow: hidden; }
-section { padding: 16px; height: 100vh; display: flex; flex-direction: column; }
+
+:root {
+  --font-ui: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "Cascadia Mono", Consolas, monospace;
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-12: 3rem;
+  --z-menu: 10;
+  --z-toggle: 20;
+  --ease-out: cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+body {
+  user-select: none; /* app chrome; re-enabled only in the rename input */
+  font: 0.875rem/1.5 var(--font-ui);
+  background: var(--bg);
+  color: var(--ink);
+  height: 100vh;
+  overflow: hidden;
+  transition: background 200ms var(--ease-out), color 200ms var(--ease-out);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--hairline);
+  border-radius: 6px;
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+}
+button:hover { background: var(--hover); }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+section { height: 100vh; display: flex; flex-direction: column; }
 section[hidden] { display: none; }
-#drives, #progress { align-items: center; justify-content: center; gap: 12px; }
-.drive-btn { font-size: 16px; padding: 14px 28px; border-radius: 8px; border: 1px solid #444; background: #2a2a33; color: inherit; cursor: pointer; }
-.drive-btn:hover { background: #34343f; }
-.spinner { width: 32px; height: 32px; border: 3px solid #444; border-top-color: #4da3ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-#main header { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; }
-#scan-summary { color: #9a9aa5; flex: 1; }
-#rescan, #switch-drive { padding: 4px 12px; border-radius: 6px; border: 1px solid #444; background: #2a2a33; color: inherit; cursor: pointer; }
-#tree { flex: 1; overflow-y: auto; }
-.row { display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: 4px; cursor: default; }
+
+/* ---------- theme toggle ---------- */
+
+#theme-toggle {
+  position: fixed;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: var(--z-toggle);
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+}
+#theme-toggle svg { width: 16px; height: 16px; fill: var(--muted); }
+#theme-toggle:hover svg { fill: var(--ink); }
+
+/* ---------- drive picker ---------- */
+
+#drives {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-8);
+  padding: var(--space-8);
+}
+#drives h1 {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.drive-list { display: flex; flex-direction: column; gap: var(--space-6); width: min(420px, 90vw); }
+.drive-row {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-4);
+  row-gap: var(--space-2);
+  align-items: baseline;
+  padding: var(--space-3);
+  margin: calc(-1 * var(--space-3));
+  border: none;
+  border-radius: 8px;
+  text-align: left;
+}
+.drive-letter {
+  font-family: var(--font-mono);
+  font-size: 3rem;
+  line-height: 1;
+  font-weight: 350;
+}
+.drive-usage {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: var(--muted);
+  justify-self: end;
+}
+.drive-bar {
+  grid-column: 1 / -1;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--track);
+  overflow: hidden;
+}
+.drive-bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--grad-a), var(--grad-b));
+  transform-origin: left;
+  animation: fill 400ms var(--ease-out);
+}
+
+/* ---------- scanning ---------- */
+
+#progress {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+}
+#scan-target {
+  font-size: 0.875rem;
+  color: var(--muted);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+#prog-bytes {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 3rem;
+  line-height: 1.1;
+  font-weight: 350;
+}
+#prog-files {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.875rem;
+  color: var(--muted);
+}
+.sweep {
+  width: min(320px, 70vw);
+  height: 2px;
+  margin-top: var(--space-4);
+  border-radius: 1px;
+  background: var(--track);
+  overflow: hidden;
+  position: relative;
+}
+.sweep::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  background: linear-gradient(90deg, var(--grad-a), var(--grad-b));
+  animation: sweep 1.1s var(--ease-out) infinite;
+}
+@keyframes sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(250%); }
+}
+
+/* ---------- main / tree ---------- */
+
+#main header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-6);
+  padding-right: calc(var(--space-6) + 40px); /* clear the theme toggle */
+  border-bottom: 1px solid var(--hairline);
+}
+#root-label { font-family: var(--font-mono); font-size: 1rem; font-weight: 600; }
+#scan-summary {
+  flex: 1;
+  color: var(--muted);
+  font-size: 0.8125rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#tree { flex: 1; overflow-y: auto; padding: var(--space-2) 0; }
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) var(--space-6);
+  cursor: default;
+  border-radius: 0;
+}
 .row.dir { cursor: pointer; }
-.row:hover { background: #2a2a33; }
-.arrow { width: 14px; color: #9a9aa5; flex-shrink: 0; }
+.row:hover { background: var(--hover); }
+.arrow { width: 14px; color: var(--muted); flex-shrink: 0; font-size: 0.75rem; }
 .name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.name input { width: 100%; font: inherit; background: #14141a; color: inherit; border: 1px solid #4da3ff; border-radius: 3px; padding: 0 4px; }
-.pct { width: 52px; text-align: right; color: #9a9aa5; flex-shrink: 0; }
-.bar { width: 120px; height: 8px; background: #2a2a33; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
-.bar span { display: block; height: 100%; background: #4da3ff; }
-.size { width: 80px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
-.menu { position: fixed; background: #2a2a33; border: 1px solid #444; border-radius: 6px; padding: 4px 0; min-width: 180px; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
-.menu div { padding: 6px 14px; cursor: pointer; }
-.menu div:hover { background: #34343f; }
-.menu .danger { color: #ff6b6b; }
+.name input {
+  user-select: text;
+  width: 100%;
+  font: inherit;
+  background: var(--bg);
+  color: inherit;
+  border: 1px solid var(--focus);
+  border-radius: 4px;
+  padding: 0 var(--space-1);
+}
+.pct {
+  width: 3.5rem;
+  text-align: right;
+  color: var(--muted);
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+.bar {
+  width: 140px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--track);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.bar > i {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--grad-a), var(--grad-b));
+  transform-origin: left;
+  animation: fill 300ms var(--ease-out);
+}
+@keyframes fill {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+.size {
+  width: 5.5rem;
+  text-align: right;
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+}
+
+/* ---------- context menu ---------- */
+
+.menu {
+  position: fixed;
+  z-index: var(--z-menu);
+  min-width: 200px;
+  padding: var(--space-1) 0;
+  background: var(--bg);
+  border: 1px solid var(--hairline);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+}
+.menu div { padding: var(--space-2) var(--space-4); cursor: pointer; }
+.menu div:hover { background: var(--hover); }
+.menu .danger { color: var(--danger); }
+
+/* ---------- motion opt-out ---------- */
+
+/* Reduced motion: only the infinite sweep is tamed — expand/collapse and
+   bar fills stay on, by explicit user choice (owner's OS has animations off). */
+@media (prefers-reduced-motion: reduce) {
+  .sweep::after { animation: none; transform: none; width: 100%; opacity: 0.5; }
+}
