@@ -1,0 +1,27 @@
+* { box-sizing: border-box; margin: 0; }
+body { font: 13px/1.5 "Segoe UI", sans-serif; background: #1e1e24; color: #e6e6ea; height: 100vh; overflow: hidden; }
+section { padding: 16px; height: 100vh; display: flex; flex-direction: column; }
+section[hidden] { display: none; }
+#drives, #progress { align-items: center; justify-content: center; gap: 12px; }
+.drive-btn { font-size: 16px; padding: 14px 28px; border-radius: 8px; border: 1px solid #444; background: #2a2a33; color: inherit; cursor: pointer; }
+.drive-btn:hover { background: #34343f; }
+.spinner { width: 32px; height: 32px; border: 3px solid #444; border-top-color: #4da3ff; border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+#main header { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; }
+#scan-summary { color: #9a9aa5; flex: 1; }
+#rescan, #switch-drive { padding: 4px 12px; border-radius: 6px; border: 1px solid #444; background: #2a2a33; color: inherit; cursor: pointer; }
+#tree { flex: 1; overflow-y: auto; }
+.row { display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: 4px; cursor: default; }
+.row.dir { cursor: pointer; }
+.row:hover { background: #2a2a33; }
+.arrow { width: 14px; color: #9a9aa5; flex-shrink: 0; }
+.name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.name input { width: 100%; font: inherit; background: #14141a; color: inherit; border: 1px solid #4da3ff; border-radius: 3px; padding: 0 4px; }
+.pct { width: 52px; text-align: right; color: #9a9aa5; flex-shrink: 0; }
+.bar { width: 120px; height: 8px; background: #2a2a33; border-radius: 4px; overflow: hidden; flex-shrink: 0; }
+.bar span { display: block; height: 100%; background: #4da3ff; }
+.size { width: 80px; text-align: right; font-variant-numeric: tabular-nums; flex-shrink: 0; }
+.menu { position: fixed; background: #2a2a33; border: 1px solid #444; border-radius: 6px; padding: 4px 0; min-width: 180px; z-index: 10; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.menu div { padding: 6px 14px; cursor: pointer; }
+.menu div:hover { background: #34343f; }
+.menu .danger { color: #ff6b6b; }

@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SpaceScanner</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <section id="drives" hidden></section>
+
+  <section id="progress" hidden>
+    <h2>Scanning…</h2>
+    <div class="spinner"></div>
+    <p id="prog-text">0 files · 0 B</p>
+  </section>
+
+  <section id="main" hidden>
+    <header>
+      <strong id="root-label"></strong>
+      <span id="scan-summary"></span>
+      <button id="switch-drive">Change drive</button>
+      <button id="rescan">Rescan</button>
+    </header>
+    <div id="tree"></div>
+  </section>
+
+  <div id="menu" class="menu" hidden>
+    <div data-act="open">Open</div>
+    <div data-act="reveal">Reveal in Explorer</div>
+    <div data-act="rename">Rename</div>
+    <div data-act="move">Move to…</div>
+    <div data-act="delete" class="danger">Delete (Recycle Bin)</div>
+  </div>
+
+  <script src="main.js"></script>
+</body>
+</html>
