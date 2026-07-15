@@ -2869,7 +2869,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "space-scanner"
+name = "spaze-finder"
 version = "0.1.0"
 dependencies = [
  "rayon",

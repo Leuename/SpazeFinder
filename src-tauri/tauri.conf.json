@@ -1,15 +1,15 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "SpaceScanner",
+  "productName": "SpazeFinder",
   "version": "0.1.0",
-  "identifier": "club.formura.spacescanner",
+  "identifier": "club.formura.spazefinder",
   "build": {
     "frontendDist": "../src"
   },
   "app": {
     "withGlobalTauri": true,
     "windows": [
-      { "title": "SpaceScanner", "width": 1000, "height": 700, "label": "main" }
+      { "title": "SpazeFinder", "width": 1000, "height": 700, "label": "main" }
     ],
     "security": { "csp": null }
   },

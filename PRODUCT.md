@@ -14,7 +14,7 @@ The owner-developer, on their own Windows machine, running an occasional disk-cl
 
 ## Product Purpose
 
-SpaceScanner scans a whole drive with admin rights and shows what takes the space as a biggest-first tree, with Explorer-like actions (open, reveal, recycle-bin delete, rename, move) so cleanup happens in place. Success: the user finds and clears the space hogs in one short session without opening Explorer.
+SpazeFinder scans a whole drive with admin rights and shows what takes the space as a biggest-first tree, with Explorer-like actions (open, reveal, recycle-bin delete, rename, move) so cleanup happens in place. Success: the user finds and clears the space hogs in one short session without opening Explorer.
 
 ## Positioning
 
