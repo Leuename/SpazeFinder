@@ -20,6 +20,7 @@ function show(id) {
 
 async function init() {
   const drives = await invoke("list_drives");
+  $("switch-drive").hidden = drives.length === 1;
   if (drives.length === 1) return startScan(drives[0].letter + "\\");
   const div = $("drives");
   div.innerHTML = "<h2>Select a drive to scan</h2>";
@@ -54,6 +55,7 @@ listen("scan-done", async (e) => {
 });
 
 $("rescan").onclick = () => startScan(rootPath);
+$("switch-drive").onclick = () => init();
 
 const joinPath = (parent, name) => (parent.endsWith("\\") ? parent + name : parent + "\\" + name);
 

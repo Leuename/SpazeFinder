@@ -8,7 +8,7 @@ section { padding: 16px; height: 100vh; display: flex; flex-direction: column; }
 @keyframes spin { to { transform: rotate(360deg); } }
 #main header { display: flex; align-items: center; gap: 12px; padding-bottom: 10px; }
 #scan-summary { color: #9a9aa5; flex: 1; }
-#rescan { padding: 4px 12px; border-radius: 6px; border: 1px solid #444; background: #2a2a33; color: inherit; cursor: pointer; }
+#rescan, #switch-drive { padding: 4px 12px; border-radius: 6px; border: 1px solid #444; background: #2a2a33; color: inherit; cursor: pointer; }
 #tree { flex: 1; overflow-y: auto; }
 .row { display: flex; align-items: center; gap: 8px; padding: 3px 8px; border-radius: 4px; cursor: default; }
 .row.dir { cursor: pointer; }

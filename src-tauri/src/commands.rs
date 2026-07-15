@@ -121,7 +121,12 @@ pub fn get_children(state: State<AppState>, path: String) -> Result<Vec<ChildInf
 
 #[tauri::command]
 pub fn open_file(path: String) -> Result<(), String> {
-    opener::open(&path).map_err(|e| e.to_string())
+    // explorer.exe brokers the launch so the child runs unelevated
+    std::process::Command::new("explorer")
+        .arg(&path)
+        .spawn()
+        .map(|_| ())
+        .map_err(|e| e.to_string())
 }
 
 #[tauri::command]
@@ -136,11 +141,13 @@ pub fn reveal(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub fn delete(state: State<AppState>, path: String) -> Result<(), String> {
-    trash::delete(&path).map_err(|e| e.to_string())?;
     let mut guard = lock_tree(&state);
     let sr = guard.as_mut().ok_or("no scan loaded")?;
     let rel = rel_components(&sr.root_path, &path)?;
-    scan::remove_node(&mut sr.root, &rel);
+    trash::delete(&path).map_err(|e| e.to_string())?;
+    if scan::remove_node(&mut sr.root, &rel).is_none() {
+        return Err("deleted from disk but not found in scan tree — rescan recommended".into());
+    }
     Ok(())
 }
 
