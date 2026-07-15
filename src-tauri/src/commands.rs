@@ -75,9 +75,17 @@ pub fn start_scan(app: AppHandle, drive: String) {
             "bytes": prog.bytes.load(Ordering::Relaxed),
             "denied": prog.denied.load(Ordering::Relaxed),
         });
-        *app.state::<AppState>().tree.lock().unwrap() = Some(ScanResult { root_path, root });
+        *app
+            .state::<AppState>()
+            .tree
+            .lock()
+            .unwrap_or_else(|e| e.into_inner()) = Some(ScanResult { root_path, root });
         let _ = app.emit("scan-done", payload);
     });
+}
+
+fn lock_tree<'a>(state: &'a State<'a, AppState>) -> std::sync::MutexGuard<'a, Option<ScanResult>> {
+    state.tree.lock().unwrap_or_else(|e| e.into_inner())
 }
 
 fn rel_components(root: &Path, path: &str) -> Result<Vec<String>, String> {
@@ -100,7 +108,7 @@ pub struct ChildInfo {
 
 #[tauri::command]
 pub fn get_children(state: State<AppState>, path: String) -> Result<Vec<ChildInfo>, String> {
-    let guard = state.tree.lock().unwrap();
+    let guard = lock_tree(&state);
     let sr = guard.as_ref().ok_or("no scan loaded")?;
     let rel = rel_components(&sr.root_path, &path)?;
     let node = scan::find_node(&sr.root, &rel).ok_or("path not found")?;
@@ -129,7 +137,7 @@ pub fn reveal(path: String) -> Result<(), String> {
 #[tauri::command]
 pub fn delete(state: State<AppState>, path: String) -> Result<(), String> {
     trash::delete(&path).map_err(|e| e.to_string())?;
-    let mut guard = state.tree.lock().unwrap();
+    let mut guard = lock_tree(&state);
     let sr = guard.as_mut().ok_or("no scan loaded")?;
     let rel = rel_components(&sr.root_path, &path)?;
     scan::remove_node(&mut sr.root, &rel);
@@ -141,15 +149,15 @@ pub fn rename(state: State<AppState>, path: String, new_name: String) -> Result<
     if new_name.is_empty() || new_name.contains(['\\', '/', ':', '*', '?', '"', '<', '>', '|']) {
         return Err("invalid file name".into());
     }
+    let mut guard = lock_tree(&state);
+    let sr = guard.as_mut().ok_or("no scan loaded")?;
+    let rel = rel_components(&sr.root_path, &path)?;
     let p = Path::new(&path);
     let dest = p.with_file_name(&new_name);
     if dest.exists() {
         return Err("a file with that name already exists".into());
     }
     std::fs::rename(p, &dest).map_err(|e| e.to_string())?;
-    let mut guard = state.tree.lock().unwrap();
-    let sr = guard.as_mut().ok_or("no scan loaded")?;
-    let rel = rel_components(&sr.root_path, &path)?;
     scan::rename_node(&mut sr.root, &rel, &new_name);
     Ok(())
 }
@@ -159,18 +167,19 @@ pub fn move_item(state: State<AppState>, path: String, dest_dir: String) -> Resu
     let p = Path::new(&path);
     let name = p.file_name().ok_or("bad path")?;
     let target = Path::new(&dest_dir).join(name);
+    let mut guard = lock_tree(&state);
+    let sr = guard.as_mut().ok_or("no scan loaded")?;
+    let rel = rel_components(&sr.root_path, &path)?;
+    let dest_rel = rel_components(&sr.root_path, &dest_dir)?;
+    if scan::find_node(&sr.root, &dest_rel).is_none() {
+        return Err("destination not in scanned tree".into());
+    }
     if target.exists() {
         return Err("target already exists".into());
     }
     std::fs::rename(p, &target).map_err(|e| e.to_string())?;
-    let mut guard = state.tree.lock().unwrap();
-    let sr = guard.as_mut().ok_or("no scan loaded")?;
-    let rel = rel_components(&sr.root_path, &path)?;
-    let dest_rel = rel_components(&sr.root_path, &dest_dir)?;
     if let Some(node) = scan::remove_node(&mut sr.root, &rel) {
-        if scan::find_node(&sr.root, &dest_rel).is_some() {
-            scan::insert_node(&mut sr.root, &dest_rel, node);
-        }
+        scan::insert_node(&mut sr.root, &dest_rel, node);
     }
     Ok(())
 }
