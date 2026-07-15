@@ -1,6 +1,7 @@
 * { box-sizing: border-box; margin: 0; }
 body { font: 13px/1.5 "Segoe UI", sans-serif; background: #1e1e24; color: #e6e6ea; height: 100vh; overflow: hidden; }
 section { padding: 16px; height: 100vh; display: flex; flex-direction: column; }
+section[hidden] { display: none; }
 #drives, #progress { align-items: center; justify-content: center; gap: 12px; }
 .drive-btn { font-size: 16px; padding: 14px 28px; border-radius: 8px; border: 1px solid #444; background: #2a2a33; color: inherit; cursor: pointer; }
 .drive-btn:hover { background: #34343f; }
