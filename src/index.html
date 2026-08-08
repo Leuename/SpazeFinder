@@ -4,11 +4,23 @@
   <meta charset="utf-8">
   <title>SpazeFinder</title>
   <link rel="stylesheet" href="style.css">
+  <script>
+    // runs before first paint — otherwise the splash flashes light before main.js loads
+    document.documentElement.dataset.theme =
+      localStorage.getItem("theme") ||
+      (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  </script>
 </head>
 <body>
   <button id="theme-toggle" aria-label="Toggle dark or light theme">
     <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 0a8 8 0 1 0 0 16A8 8 0 0 0 8 0zm0 14.5V1.5a6.5 6.5 0 0 1 0 13z"/></svg>
   </button>
+
+  <!-- visible from first paint, before main.js runs; show() hides it -->
+  <section id="splash">
+    <img class="mark" src="icon.png" alt="" width="112" height="112">
+    <h1>SpazeFinder</h1>
+  </section>
 
   <section id="drives" hidden>
     <h1>Select a drive</h1>
@@ -16,6 +28,7 @@
   </section>
 
   <section id="progress" hidden>
+    <img class="mark" src="icon.png" alt="" width="72" height="72">
     <span id="scan-target">Scanning</span>
     <span id="prog-bytes">0 B</span>
     <span id="prog-files">0 files</span>
@@ -40,6 +53,19 @@
     <div data-act="delete" class="danger">Delete (Recycle Bin)</div>
   </div>
 
+  <script>
+    // The window starts hidden (tauri.conf.json "visible": false) because WebView2
+    // takes ~1.2s to boot and a visible window is a blank rectangle for all of it.
+    // Reveal only once the splash image is decoded AND a frame has been composited —
+    // rAF alone fires before the PNG decodes, which showed an empty window for ~360ms.
+    const splashImg = document.querySelector("#splash img");
+    const painted = splashImg.decode ? splashImg.decode().catch(() => {}) : Promise.resolve();
+    painted.then(() =>
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => window.__TAURI__.window.getCurrentWindow().show())
+      )
+    );
+  </script>
   <script src="main.js"></script>
 </body>
 </html>
