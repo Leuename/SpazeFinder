@@ -1,0 +1,35 @@
+# ponytail: Windows is the only shipped target — restricting the graph keeps the
+# GTK/Linux half of Tauri's dependency tree out of both license and advisory
+# checks. Add targets here if the project ever ships another platform.
+[graph]
+targets = ["x86_64-pc-windows-msvc"]
+
+[licenses]
+# MPL-2.0 is file-level copyleft: fine to link unmodified. See THIRD_PARTY_NOTICES.md.
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "CC0-1.0",
+  "ISC",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+
+[advisories]
+# unic-* is unmaintained, not vulnerable. Reached only through
+# tauri-utils -> urlpattern; no safe upgrade exists upstream. Re-check on each
+# Tauri bump and drop these once urlpattern moves off unic.
+ignore = [
+  "RUSTSEC-2025-0075", # unic-char-range
+  "RUSTSEC-2025-0080", # unic-common
+  "RUSTSEC-2025-0081", # unic-char-property
+  "RUSTSEC-2025-0098", # unic-ucd-version
+  "RUSTSEC-2025-0100", # unic-ucd-ident
+]
