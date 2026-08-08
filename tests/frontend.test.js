@@ -29,6 +29,10 @@ function test(name, fn) {
   }
 }
 
+const readJson = (...p) => JSON.parse(fs.readFileSync(path.join(SRC, "..", ...p), "utf8"));
+const tauriConf = () => readJson("src-tauri", "tauri.conf.json");
+const capabilities = () => readJson("src-tauri", "capabilities", "default.json");
+
 // ---------- static checks on index.html ----------
 
 const ids = new Set([...html.matchAll(/id="([^"]+)"/g)].map((m) => m[1]));
@@ -80,13 +84,10 @@ test("the icon appears on the splash and on the scan screen", () => {
 // The window is created hidden so WebView2's ~700ms white boot rectangle never
 // shows. That only works if all three pieces stay in place together.
 test("window stays hidden until the page paints", () => {
-  const conf = JSON.parse(fs.readFileSync(path.join(SRC, "..", "src-tauri", "tauri.conf.json"), "utf8"));
-  const win = conf.app.windows.find((w) => w.label === "main");
+  const win = tauriConf().app.windows.find((w) => w.label === "main");
   assert.equal(win.visible, false, "main window must be created hidden");
 
-  const caps = JSON.parse(fs.readFileSync(
-    path.join(SRC, "..", "src-tauri", "capabilities", "default.json"), "utf8"));
-  assert.ok(caps.permissions.includes("core:window:allow-show"),
+  assert.ok(capabilities().permissions.includes("core:window:allow-show"),
     "hidden window needs core:window:allow-show or it can never appear");
 
   assert.match(html, /getCurrentWindow\(\)\.show\(\)/,
@@ -126,6 +127,7 @@ function makeEl(id = "") {
 function run(invokeImpl) {
   const els = new Map([...ids].map((id) => [id, makeEl(id)]));
   const listeners = new Map();
+  const sized = []; // every setSize the page asks for
   const ctx = {
     console,
     setTimeout,
@@ -134,10 +136,22 @@ function run(invokeImpl) {
     requestAnimationFrame: () => 0,
     cancelAnimationFrame: () => {},
     localStorage: { getItem: () => null, setItem() {} },
+    screen: { availWidth: 1920, availHeight: 1040 },
+    // one char = 7px, so width assertions below are exact rather than font-dependent
+    getComputedStyle: () => ({
+      fontWeight: "400",
+      fontSize: "14px",
+      fontFamily: "sans-serif",
+      paddingTop: "8px",
+      paddingBottom: "8px",
+    }),
     document: {
       documentElement: { dataset: {} },
       getElementById: (id) => els.get(id) ?? null,
-      createElement: () => makeEl(),
+      createElement: (tag) =>
+        tag === "canvas"
+          ? { getContext: () => ({ font: "", measureText: (t) => ({ width: t.length * 7 }) }) }
+          : makeEl(),
       querySelector: () => makeEl(),
       addEventListener() {},
     },
@@ -145,17 +159,44 @@ function run(invokeImpl) {
   ctx.window = {
     innerWidth: 1000,
     innerHeight: 700,
+    devicePixelRatio: 1,
     matchMedia: () => ({ matches: false }),
     __TAURI__: {
       core: { invoke: invokeImpl },
       event: { listen: (name, cb) => listeners.set(name, cb) },
       dialog: { open: async () => null, confirm: async () => false, message: async () => {} },
+      window: {
+        getCurrentWindow: () => ({
+          show: () => {},
+          setSize: async (s) => sized.push(s),
+          outerSize: async () => ({ width: 1016, height: 739 }),
+          innerSize: async () => ({ width: 1000, height: 700 }),
+        }),
+        PhysicalSize: function (width, height) {
+          this.width = width;
+          this.height = height;
+        },
+      },
     },
   };
   ctx.globalThis = ctx;
   vm.createContext(ctx);
   vm.runInContext(js, ctx, { filename: "main.js" });
-  return { ctx, els, listeners };
+  return { ctx, els, listeners, sized };
+}
+
+/// A tree row as contentWidth() sees it: an indent, a name, and measured boxes.
+function fakeRow({ pad = 0, name = "", rowW = 1000, nameW = 500, renaming = false }) {
+  const nameEl = {
+    textContent: name,
+    getBoundingClientRect: () => ({ width: nameW }),
+    querySelector: (sel) => (renaming && sel === "input" ? {} : null),
+  };
+  return {
+    style: { paddingLeft: `${pad}px` },
+    getBoundingClientRect: () => ({ width: rowW }),
+    querySelector: (sel) => (sel === ".name" ? nameEl : null),
+  };
 }
 
 test("main.js loads and wires up without throwing", () => {
@@ -183,6 +224,49 @@ test("splash holds long enough to be seen, then yields to the drive picker", asy
   await new Promise((r) => setTimeout(r, 600));
   assert.equal(els.get("splash").hidden, true, "splash should be gone after MIN_SPLASH_MS");
   assert.equal(els.get("drives").hidden, false, "drive picker should be showing");
+});
+
+// The window sizes itself instead of being dragged, so these three must agree.
+test("window is fixed to the user but resizable by the app", () => {
+  const win = tauriConf().app.windows.find((w) => w.label === "main");
+  assert.equal(win.resizable, false, "the user must not be able to drag the window size");
+
+  const perms = capabilities().permissions;
+  for (const p of ["core:window:allow-set-size", "core:window:allow-inner-size", "core:window:allow-outer-size"]) {
+    assert.ok(perms.includes(p), `self-sizing needs ${p}`);
+  }
+  assert.match(js, /setSize\(/, "nothing resizes the window, so it can never fit its content");
+});
+
+test("contentWidth() fits the longest name, counting its indent", () => {
+  const { ctx } = run(async () => []);
+  // row 0 establishes the fixed columns: 1000 wide, 0 indent, 500 of it name => 500 fixed.
+  // shallow name of 3 chars => 21px of text; +500 fixed +8 slack
+  assert.equal(ctx.contentWidth([fakeRow({ name: "aaa" })]), 529);
+
+  // a deeply indented short name can out-demand a shallow long one
+  const deep = ctx.contentWidth([
+    fakeRow({ name: "aaa" }),
+    fakeRow({ pad: 200, name: "bb" }),
+  ]);
+  assert.equal(deep, 200 + 14 + 500 + 8, "indent must count toward the width demand");
+
+  // and the longest name wins when depth is equal
+  const long = ctx.contentWidth([
+    fakeRow({ name: "aaa" }),
+    fakeRow({ name: "a-much-longer-folder-name" }),
+  ]);
+  assert.equal(long, 25 * 7 + 500 + 8);
+});
+
+test("contentWidth() ignores a row being renamed", () => {
+  const { ctx } = run(async () => []);
+  // the input replaces the label, so its text width means nothing
+  const w = ctx.contentWidth([
+    fakeRow({ name: "aaa" }),
+    fakeRow({ name: "x".repeat(400), renaming: true }),
+  ]);
+  assert.equal(w, 529, "a row mid-rename must not stretch the window");
 });
 
 test("fmt() scales units and keeps bytes whole", () => {

@@ -112,6 +112,94 @@ $("switch-drive").onclick = () => init();
 
 const joinPath = (parent, name) => (parent.endsWith("\\") ? parent + name : parent + "\\" + name);
 
+// ---------- window sizing ----------
+//
+// The window is not user-resizable (tauri.conf.json "resizable": false); it sizes itself
+// to the tree. Width is driven by the longest visible name at its indent depth, because a
+// truncated folder name is the one thing you cannot work around in a read-only view.
+// Height follows the row count. Both shrink again when folders collapse.
+
+const { getCurrentWindow, PhysicalSize } = window.__TAURI__.window;
+
+const MIN_W = 640;
+const MIN_H = 420;
+const SLACK = 8; // a hair of air so the longest name never sits flush against the size column
+
+// Text measured on a canvas rather than in the DOM: .name is overflow:hidden, so its
+// scrollWidth reports the clipped width and can never tell us the window is too wide.
+const meter = document.createElement("canvas").getContext("2d");
+let meterFont = "";
+
+// Title bar and borders, in CSS px. setSize takes the inner size, so the frame has to be
+// subtracted from the work area or the window ends up taller than the screen.
+let frame = null;
+async function windowFrame() {
+  if (!frame) {
+    const win = getCurrentWindow();
+    const [outer, inner] = [await win.outerSize(), await win.innerSize()];
+    const dpr = window.devicePixelRatio || 1;
+    frame = { w: (outer.width - inner.width) / dpr, h: (outer.height - inner.height) / dpr };
+  }
+  return frame;
+}
+
+/// Width the widest row needs, in CSS px, or null when there is nothing to measure.
+function contentWidth(rows) {
+  const first = rows[0].querySelector(".name");
+  if (!first) return null;
+  if (!meterFont) {
+    const cs = getComputedStyle(first);
+    meterFont = `${cs.fontWeight} ${cs.fontSize} ${cs.fontFamily}`;
+  }
+  meter.font = meterFont;
+  // Everything that is not the name or the left indent: arrow, gaps, pct, bar, size,
+  // right padding. Derived from a real row so it survives any CSS change.
+  const pad0 = parseFloat(rows[0].style.paddingLeft) || 0;
+  const fixed = rows[0].getBoundingClientRect().width - pad0 - first.getBoundingClientRect().width;
+
+  let widest = 0;
+  for (const row of rows) {
+    const name = row.querySelector(".name");
+    if (!name || name.querySelector("input")) continue; // mid-rename, width is meaningless
+    const pad = parseFloat(row.style.paddingLeft) || 0;
+    widest = Math.max(widest, pad + meter.measureText(name.textContent).width);
+  }
+  return widest + fixed + SLACK;
+}
+
+async function fitWindowNow() {
+  if ($("main").hidden) return;
+  const rows = $("tree").querySelectorAll(".row");
+  if (!rows.length) return;
+
+  const needW = contentWidth(rows);
+  if (needW == null) return;
+
+  const treeStyle = getComputedStyle($("tree"));
+  const padV = parseFloat(treeStyle.paddingTop) + parseFloat(treeStyle.paddingBottom);
+  const chromeV = window.innerHeight - $("tree").clientHeight; // header, mostly
+  const needH = rows.length * rows[0].getBoundingClientRect().height + padV + chromeV;
+
+  // never spill off the work area, never collapse to unusable
+  const { w: frameW, h: frameH } = await windowFrame();
+  const w = Math.round(Math.min(Math.max(needW, MIN_W), screen.availWidth - frameW));
+  const h = Math.round(Math.min(Math.max(needH, MIN_H), screen.availHeight - frameH));
+  if (Math.abs(w - window.innerWidth) < 2 && Math.abs(h - window.innerHeight) < 2) return;
+
+  // setSize takes the INNER size — Tauri adds the frame itself, so asking for
+  // w+chrome overshoots by exactly the title bar and borders.
+  const dpr = window.devicePixelRatio || 1;
+  await getCurrentWindow().setSize(new PhysicalSize(Math.round(w * dpr), Math.round(h * dpr)));
+}
+
+// Expand/collapse animates for 260ms; resizing mid-animation looks like a stutter, and
+// row counts churn during a burst of clicks. One trailing fit settles it.
+let fitTimer = null;
+function fitWindow(delay = 300) {
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(() => fitWindowNow().catch(() => {}), delay);
+}
+
 // accordion-style height easing for folder expand/collapse.
 // Runs even under prefers-reduced-motion by explicit user choice.
 const EASE = "height 260ms cubic-bezier(0.25, 1, 0.5, 1)";
@@ -151,6 +239,7 @@ async function renderTree() {
   const tree = $("tree");
   tree.innerHTML = "";
   await renderLevel(tree, rootPath, 0);
+  fitWindow(0); // nothing is animating on a full render
 }
 
 async function renderLevel(container, parentPath, depth) {
@@ -187,6 +276,7 @@ async function renderLevel(container, parentPath, depth) {
         await renderLevel(kids, path, depth + 1);
         expandKids(kids);
       }
+      fitWindow(); // after the 260ms accordion settles
     };
     row.ondblclick = () => {
       if (c.is_dir) return; // folders expand on single click

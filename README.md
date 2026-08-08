@@ -36,7 +36,16 @@ cargo test
 
 ### Note for contributors
 
-Frontend assets (`src/`) are embedded into the binary at compile time. After JS/CSS-only changes, touch `src-tauri/src/main.rs` (update its modified time) before `cargo build`, or the binary ships stale assets.
+Frontend assets (`src/`) are embedded into the binary at compile time, and `cargo` does not
+track them as inputs. After JS/CSS/HTML-only changes run:
+
+```powershell
+cargo clean -p spaze-finder
+cargo build --release
+```
+
+Touching `src-tauri/src/main.rs` is **not** enough — the binary still ships the previously
+embedded assets, and you end up debugging a UI that is not the one on disk.
 
 ## Tech
 
