@@ -15,10 +15,14 @@ fn main() {
       />
     </dependentAssembly>
   </dependency>
+  <!-- asInvoker, not requireAdministrator: with requireAdministrator, declining the
+       UAC prompt means Windows refuses to start the app at all. We ask for elevation
+       ourselves (see request_elevation in main.rs) so a declined prompt can fall back
+       to scanning what a standard user can read. -->
   <trustInfo xmlns="urn:schemas-microsoft-com:asm.v3">
     <security>
       <requestedPrivileges>
-        <requestedExecutionLevel level="requireAdministrator" uiAccess="false"/>
+        <requestedExecutionLevel level="asInvoker" uiAccess="false"/>
       </requestedPrivileges>
     </security>
   </trustInfo>

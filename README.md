@@ -6,7 +6,7 @@ SpazeFinder is a Windows desktop app that scans a whole drive and shows what tak
 
 ## Features
 
-- **Full-drive scan with admin rights** — the release build elevates via UAC at launch so protected folders are counted; scans millions of files in parallel (rayon)
+- **Full-drive scan** — asks for Administrator via UAC at launch so protected folders are counted. Decline and it keeps running with standard access, telling you protected files and folders are skipped rather than quietly under-reporting. Scans millions of files in parallel (rayon)
 - **Biggest-first tree** — every level sorted by size, with gradient bars showing each item's share of its parent
 - **Act in place, like Explorer**
   - Double-click a file to open it (de-elevated through the shell, so nothing inherits admin rights)
@@ -36,7 +36,16 @@ cargo test
 
 ### Note for contributors
 
-Frontend assets (`src/`) are embedded into the binary at compile time. After JS/CSS-only changes, touch `src-tauri/src/main.rs` (update its modified time) before `cargo build`, or the binary ships stale assets.
+Frontend assets (`src/`) are embedded into the binary at compile time, and `cargo` does not
+track them as inputs. After JS/CSS/HTML-only changes run:
+
+```powershell
+cargo clean -p spaze-finder
+cargo build --release
+```
+
+Touching `src-tauri/src/main.rs` is **not** enough — the binary still ships the previously
+embedded assets, and you end up debugging a UI that is not the one on disk.
 
 ## Tech
 

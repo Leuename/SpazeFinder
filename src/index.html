@@ -17,6 +17,11 @@
   </button>
 
   <!-- visible from first paint, before main.js runs; show() hides it -->
+  <!-- shown when the UAC prompt was declined; see is_elevated -->
+  <p id="no-admin" hidden role="status">
+    No administrator access — protected system files and folders will be skipped.
+  </p>
+
   <section id="splash">
     <img class="mark" src="icon.png" alt="" width="112" height="112">
     <h1>SpazeFinder</h1>

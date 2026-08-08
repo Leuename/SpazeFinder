@@ -14,6 +14,8 @@
         "width": 1000,
         "height": 700,
         "label": "main",
+        "resizable": false,
+        "maximizable": false,
         "visible": false,
         "backgroundColor": "#262730"
       }

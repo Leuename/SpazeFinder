@@ -5,11 +5,42 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter, Manager, State};
+use windows_sys::Win32::Foundation::CloseHandle;
+use windows_sys::Win32::Security::{
+    GetTokenInformation, TokenElevation, TOKEN_ELEVATION, TOKEN_QUERY,
+};
 use windows_sys::Win32::Storage::FileSystem::{
     GetDiskFreeSpaceExW, GetDriveTypeW, GetLogicalDrives,
 };
+use windows_sys::Win32::System::Threading::{GetCurrentProcess, OpenProcessToken};
 
 const DRIVE_FIXED: u32 = 3;
+
+/// Whether this process holds an elevated (Administrator) token.
+///
+/// The app launches as `asInvoker` and asks for elevation itself, so declining the UAC
+/// prompt leaves us running as a standard user. The UI calls this to tell the user that
+/// protected files and folders will be skipped rather than silently under-reporting.
+#[tauri::command]
+pub fn is_elevated() -> bool {
+    unsafe {
+        let mut token = std::ptr::null_mut();
+        if OpenProcessToken(GetCurrentProcess(), TOKEN_QUERY, &mut token) == 0 {
+            return false;
+        }
+        let mut info = TOKEN_ELEVATION { TokenIsElevated: 0 };
+        let mut len = 0u32;
+        let ok = GetTokenInformation(
+            token,
+            TokenElevation,
+            &mut info as *mut _ as *mut core::ffi::c_void,
+            std::mem::size_of::<TOKEN_ELEVATION>() as u32,
+            &mut len,
+        );
+        CloseHandle(token);
+        ok != 0 && info.TokenIsElevated != 0
+    }
+}
 
 #[derive(Serialize)]
 pub struct DriveInfo {

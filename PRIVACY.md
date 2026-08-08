@@ -63,8 +63,14 @@ works fully offline. There is no update checker.
 
 Official Windows release builds request Administrator elevation through UAC at
 launch, so that system-protected folders are counted instead of being reported as
-inaccessible. This affects what SpazeFinder can read on your machine; it does not
-change what leaves your machine, which is nothing.
+inaccessible.
+
+Elevation is optional. If you decline the prompt, SpazeFinder keeps running with
+your standard account's access and displays a notice that protected system files
+and folders are skipped. Nothing about the scan is hidden from you either way.
+
+This affects what SpazeFinder can read on your machine; it does not change what
+leaves your machine, which is nothing.
 
 Files you double-click to open are launched through `explorer.exe`, so the opened
 program runs without inheriting Administrator rights.

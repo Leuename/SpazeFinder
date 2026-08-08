@@ -93,6 +93,28 @@ section[hidden] { display: none; }
 #theme-toggle svg { width: 16px; height: 16px; fill: var(--muted); }
 #theme-toggle:hover svg { fill: var(--ink); }
 
+/* ---------- no-admin notice ---------- */
+
+/* A bottom strip rather than a top one: it clears the theme toggle and the #main
+   header without either having to move. */
+:root { --banner-h: 33px; }
+
+#no-admin {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: var(--z-toggle);
+  padding: var(--space-2) var(--space-6);
+  font-size: 0.8125rem;
+  color: var(--muted);
+  background: var(--hover);
+  border-top: 1px solid var(--hairline);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#no-admin[hidden] { display: none; }
+body.no-admin section { height: calc(100vh - var(--banner-h)); }
+
 /* ---------- splash ---------- */
 
 #splash {
