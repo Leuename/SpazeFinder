@@ -238,6 +238,16 @@ test("window is fixed to the user but resizable by the app", () => {
   assert.match(js, /setSize\(/, "nothing resizes the window, so it can never fit its content");
 });
 
+// Width adapts to the content; height deliberately does not. These two must not drift.
+test("height stays at the configured window height", () => {
+  const win = tauriConf().app.windows.find((w) => w.label === "main");
+  const fixed = js.match(/FIXED_H\s*=\s*(\d+)/);
+  assert.ok(fixed, "main.js must pin the height to a constant, not derive it from row count");
+  assert.equal(Number(fixed[1]), win.height,
+    `FIXED_H (${fixed && fixed[1]}) must match the window height in tauri.conf.json (${win.height})`);
+  assert.doesNotMatch(js, /rows\.length\s*\*/, "height must not be computed from the row count");
+});
+
 test("contentWidth() fits the longest name, counting its indent", () => {
   const { ctx } = run(async () => []);
   // row 0 establishes the fixed columns: 1000 wide, 0 indent, 500 of it name => 500 fixed.

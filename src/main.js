@@ -122,7 +122,9 @@ const joinPath = (parent, name) => (parent.endsWith("\\") ? parent + name : pare
 const { getCurrentWindow, PhysicalSize } = window.__TAURI__.window;
 
 const MIN_W = 640;
-const MIN_H = 420;
+// Height stays put at the original window height from tauri.conf.json — only width
+// adapts. Long trees scroll inside #tree rather than growing the window.
+const FIXED_H = 700;
 const SLACK = 8; // a hair of air so the longest name never sits flush against the size column
 
 // Text measured on a canvas rather than in the DOM: .name is overflow:hidden, so its
@@ -175,15 +177,10 @@ async function fitWindowNow() {
   const needW = contentWidth(rows);
   if (needW == null) return;
 
-  const treeStyle = getComputedStyle($("tree"));
-  const padV = parseFloat(treeStyle.paddingTop) + parseFloat(treeStyle.paddingBottom);
-  const chromeV = window.innerHeight - $("tree").clientHeight; // header, mostly
-  const needH = rows.length * rows[0].getBoundingClientRect().height + padV + chromeV;
-
   // never spill off the work area, never collapse to unusable
   const { w: frameW, h: frameH } = await windowFrame();
   const w = Math.round(Math.min(Math.max(needW, MIN_W), screen.availWidth - frameW));
-  const h = Math.round(Math.min(Math.max(needH, MIN_H), screen.availHeight - frameH));
+  const h = Math.round(Math.min(FIXED_H, screen.availHeight - frameH));
   if (Math.abs(w - window.innerWidth) < 2 && Math.abs(h - window.innerHeight) < 2) return;
 
   // setSize takes the INNER size — Tauri adds the frame itself, so asking for
