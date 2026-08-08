@@ -108,7 +108,11 @@ function makeEl(id = "") {
     value: "",
     style: { cssText: "" },
     dataset: {},
-    classList: { contains: () => false },
+    classes: new Set(),
+    get classList() {
+      const s = this.classes;
+      return { contains: (c) => s.has(c), add: (c) => s.add(c), remove: (c) => s.delete(c) };
+    },
     children: [],
     scrollHeight: 10,
     offsetHeight: 10,
@@ -124,8 +128,15 @@ function makeEl(id = "") {
   return el;
 }
 
+// mirror the markup's initial hidden state, so "starts hidden" is modelled not assumed
+const hiddenIds = new Set([...html.matchAll(/id="([^"]+)"[^>]*\shidden/g)].map((m) => m[1]));
+
 function run(invokeImpl) {
-  const els = new Map([...ids].map((id) => [id, makeEl(id)]));
+  const els = new Map([...ids].map((id) => {
+    const el = makeEl(id);
+    el.hidden = hiddenIds.has(id);
+    return [id, el];
+  }));
   const listeners = new Map();
   const sized = []; // every setSize the page asks for
   const ctx = {
@@ -147,6 +158,7 @@ function run(invokeImpl) {
     }),
     document: {
       documentElement: { dataset: {} },
+      body: makeEl("body"),
       getElementById: (id) => els.get(id) ?? null,
       createElement: (tag) =>
         tag === "canvas"
@@ -277,6 +289,28 @@ test("contentWidth() ignores a row being renamed", () => {
     fakeRow({ name: "x".repeat(400), renaming: true }),
   ]);
   assert.equal(w, 529, "a row mid-rename must not stretch the window");
+});
+
+// Declining UAC now leaves the app running unelevated instead of not starting, so the
+// user has to be told the totals exclude protected paths.
+test("the no-admin notice exists, starts hidden, and is driven by is_elevated", () => {
+  const tag = html.match(/<p id="no-admin"[^>]*>/)[0];
+  assert.ok(tag.includes("hidden"), "the notice must not show when running elevated");
+  assert.match(html, /protected system files and folders will be skipped/i);
+  assert.match(js, /invoke\("is_elevated"\)/, "nothing asks whether we are elevated");
+  assert.match(js, /\$\("no-admin"\)\.hidden = false/, "nothing ever reveals the notice");
+});
+
+test("the notice appears only when the UAC prompt was declined", async () => {
+  const declined = run(async (cmd) => (cmd === "is_elevated" ? false : []));
+  await new Promise((r) => setTimeout(r, 700));
+  assert.equal(declined.els.get("no-admin").hidden, false, "unelevated must show the notice");
+  assert.ok(declined.ctx.document.body.classList.contains("no-admin"),
+    "the body class is what reserves layout room for the strip");
+
+  const granted = run(async (cmd) => (cmd === "is_elevated" ? true : []));
+  await new Promise((r) => setTimeout(r, 700));
+  assert.equal(granted.els.get("no-admin").hidden, true, "elevated must not show the notice");
 });
 
 test("fmt() scales units and keeps bytes whole", () => {

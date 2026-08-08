@@ -32,6 +32,13 @@ const bootAt = Date.now();
 let firstInit = true;
 
 async function init() {
+  // Declining UAC leaves us unelevated rather than not starting at all, so say so before
+  // the scan begins — otherwise the totals just quietly under-report.
+  if (!(await invoke("is_elevated"))) {
+    $("no-admin").hidden = false;
+    document.body.classList.add("no-admin");
+  }
+
   const drives = await invoke("list_drives");
   if (firstInit) {
     firstInit = false; // only the launch splash waits; "Change drive" is instant

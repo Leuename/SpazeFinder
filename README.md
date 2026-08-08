@@ -6,7 +6,7 @@ SpazeFinder is a Windows desktop app that scans a whole drive and shows what tak
 
 ## Features
 
-- **Full-drive scan with admin rights** — the release build elevates via UAC at launch so protected folders are counted; scans millions of files in parallel (rayon)
+- **Full-drive scan** — asks for Administrator via UAC at launch so protected folders are counted. Decline and it keeps running with standard access, telling you protected files and folders are skipped rather than quietly under-reporting. Scans millions of files in parallel (rayon)
 - **Biggest-first tree** — every level sorted by size, with gradient bars showing each item's share of its parent
 - **Act in place, like Explorer**
   - Double-click a file to open it (de-elevated through the shell, so nothing inherits admin rights)

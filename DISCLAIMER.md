@@ -40,6 +40,11 @@ rights means filesystem actions taken in the app are not blocked by the
 protections that would normally stop a standard user. Review destructive actions
 carefully.
 
+Declining the prompt is supported. SpazeFinder then runs with your standard
+account's access and shows a notice that protected system files and folders are
+skipped — reported totals will be lower than the real disk usage, and folders it
+could not read are counted as unscanned.
+
 Files you open from SpazeFinder are launched through `explorer.exe` so they do not
 inherit Administrator rights.
 

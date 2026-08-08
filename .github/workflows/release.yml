@@ -90,6 +90,8 @@ jobs:
             (Get-FileHash .\spazefinder-${{ github.ref_name }}-windows-x64.exe -Algorithm SHA256).Hash
             ```
 
-            SpazeFinder requests Administrator at launch so protected folders are
-            counted. It processes filesystem information locally and sends nothing
-            anywhere — see [PRIVACY.md](PRIVACY.md) and [DISCLAIMER.md](DISCLAIMER.md).
+            SpazeFinder asks for Administrator at launch so protected folders are
+            counted. Declining is supported: it keeps running with standard access and
+            tells you protected files and folders are skipped. It processes filesystem
+            information locally and sends nothing anywhere — see
+            [PRIVACY.md](PRIVACY.md) and [DISCLAIMER.md](DISCLAIMER.md).

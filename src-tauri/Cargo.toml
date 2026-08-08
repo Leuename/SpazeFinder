@@ -21,6 +21,8 @@ windows-sys = { version = "0.59", features = [
   "Win32_Foundation",
   "Win32_System_Threading",
   "Win32_Security", # CreateMutexW takes SECURITY_ATTRIBUTES, so it is gated on this too
+  "Win32_UI_Shell", # ShellExecuteW, to request elevation ourselves
+  "Win32_UI_WindowsAndMessaging", # SHOW_WINDOW_CMD for the above
 ] }
 
 [dev-dependencies]
