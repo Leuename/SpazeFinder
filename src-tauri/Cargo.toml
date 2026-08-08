@@ -2,6 +2,9 @@
 name = "spaze-finder"
 version = "0.1.0"
 edition = "2021"
+license = "MIT"
+description = "Local-first disk usage scanner and filesystem cleanup tool for Windows"
+repository = "https://github.com/Leuename/SpazeFinder"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
