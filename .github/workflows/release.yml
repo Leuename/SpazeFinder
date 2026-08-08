@@ -1,0 +1,95 @@
+name: Release
+
+# Tag-driven so every published artifact traces back to a commit:
+#   git tag -a v0.1.0 -m "..." && git push origin v0.1.0
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write # needed to create the release and upload assets
+
+jobs:
+  windows:
+    name: Build and publish (windows-x64)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Frontend smoke test
+        run: node tests/frontend.test.js
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # The gate runs again here rather than trusting CI on master: a tag can
+      # point at any commit, so the artifact must prove itself independently.
+      - name: Format
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny,cargo-audit
+
+      - name: Licences and advisories
+        working-directory: src-tauri
+        run: cargo deny check
+
+      - name: Vulnerability audit
+        working-directory: src-tauri
+        run: cargo audit
+
+      - name: Build
+        working-directory: src-tauri
+        run: cargo build --release
+
+      - name: Stage artifact and checksum
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}"
+          $name = "spazefinder-$version-windows-x64.exe"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Copy-Item src-tauri/target/release/spaze-finder.exe "dist/$name"
+          # sha256sum-compatible format, so `sha256sum -c SHA256SUMS.txt` verifies
+          $hash = (Get-FileHash "dist/$name" -Algorithm SHA256).Hash.ToLower()
+          "$hash  $name" | Out-File -FilePath dist/SHA256SUMS.txt -Encoding ascii
+          Write-Host "published checksum:"
+          Get-Content dist/SHA256SUMS.txt
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.exe
+            dist/SHA256SUMS.txt
+          generate_release_notes: true
+          body: |
+            Windows x64 build of SpazeFinder ${{ github.ref_name }}.
+
+            **This binary is not code-signed.** Windows SmartScreen will warn on
+            first run. Verify the download against `SHA256SUMS.txt` before running:
+
+            ```powershell
+            (Get-FileHash .\spazefinder-${{ github.ref_name }}-windows-x64.exe -Algorithm SHA256).Hash
+            ```
+
+            SpazeFinder requests Administrator at launch so protected folders are
+            counted. It processes filesystem information locally and sends nothing
+            anywhere — see [PRIVACY.md](PRIVACY.md) and [DISCLAIMER.md](DISCLAIMER.md).
