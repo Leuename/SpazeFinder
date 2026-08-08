@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+# A newer push to the same branch makes the in-flight run pointless.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gate:
+    name: Gate (windows)
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      # Cheapest check first: it needs no Rust toolchain and catches broken
+      # markup, a missing element id, or a splash/theme regression in ~1s.
+      - name: Frontend smoke test
+        run: node tests/frontend.test.js
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      # Each command is its own step: a multi-line `run` under pwsh only fails
+      # the job on the LAST command's exit code, which would hide earlier failures.
+      - name: Format
+        working-directory: src-tauri
+        run: cargo fmt --check
+
+      - name: Clippy
+        working-directory: src-tauri
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Tests
+        working-directory: src-tauri
+        run: cargo test
+
+      - name: Release build
+        working-directory: src-tauri
+        run: cargo build --release
+
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-deny,cargo-audit
+
+      # Licence policy and the allow/ignore list live in src-tauri/deny.toml.
+      - name: Licences and advisories
+        working-directory: src-tauri
+        run: cargo deny check
+
+      - name: Vulnerability audit
+        working-directory: src-tauri
+        run: cargo audit
