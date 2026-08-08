@@ -9,7 +9,14 @@
   "app": {
     "withGlobalTauri": true,
     "windows": [
-      { "title": "SpazeFinder", "width": 1000, "height": 700, "label": "main" }
+      {
+        "title": "SpazeFinder",
+        "width": 1000,
+        "height": 700,
+        "label": "main",
+        "visible": false,
+        "backgroundColor": "#262730"
+      }
     ],
     "security": { "csp": null }
   },

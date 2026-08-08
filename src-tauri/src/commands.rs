@@ -75,11 +75,8 @@ pub fn start_scan(app: AppHandle, drive: String) {
             "bytes": prog.bytes.load(Ordering::Relaxed),
             "denied": prog.denied.load(Ordering::Relaxed),
         });
-        *app
-            .state::<AppState>()
-            .tree
-            .lock()
-            .unwrap_or_else(|e| e.into_inner()) = Some(ScanResult { root_path, root });
+        *app.state::<AppState>().tree.lock().unwrap_or_else(|e| e.into_inner()) =
+            Some(ScanResult { root_path, root });
         let _ = app.emit("scan-done", payload);
     });
 }
@@ -92,11 +89,7 @@ fn rel_components(root: &Path, path: &str) -> Result<Vec<String>, String> {
     Path::new(path)
         .strip_prefix(root)
         .map_err(|_| "path outside scanned drive".to_string())
-        .map(|p| {
-            p.components()
-                .map(|c| c.as_os_str().to_string_lossy().into_owned())
-                .collect()
-        })
+        .map(|p| p.components().map(|c| c.as_os_str().to_string_lossy().into_owned()).collect())
 }
 
 #[derive(Serialize)]
@@ -122,11 +115,7 @@ pub fn get_children(state: State<AppState>, path: String) -> Result<Vec<ChildInf
 #[tauri::command]
 pub fn open_file(path: String) -> Result<(), String> {
     // explorer.exe brokers the launch so the child runs unelevated
-    std::process::Command::new("explorer")
-        .arg(&path)
-        .spawn()
-        .map(|_| ())
-        .map_err(|e| e.to_string())
+    std::process::Command::new("explorer").arg(&path).spawn().map(|_| ()).map_err(|e| e.to_string())
 }
 
 #[tauri::command]

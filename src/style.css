@@ -93,6 +93,35 @@ section[hidden] { display: none; }
 #theme-toggle svg { width: 16px; height: 16px; fill: var(--muted); }
 #theme-toggle:hover svg { fill: var(--ink); }
 
+/* ---------- splash ---------- */
+
+#splash {
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-6);
+}
+/* same asset on the splash and the scan screen — one decode, two placements */
+.mark {
+  border-radius: 22%;
+  box-shadow: var(--shadow);
+  animation: breathe 2.4s var(--ease-out) infinite;
+}
+#progress .mark { margin-bottom: var(--space-2); }
+#splash h1 {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--muted);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+@keyframes breathe {
+  0%, 100% { transform: scale(1); opacity: 0.92; }
+  50% { transform: scale(1.04); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mark { animation: none; }
+}
+
 /* ---------- drive picker ---------- */
 
 #drives {

@@ -1,0 +1,5 @@
+# This code is deliberately compact — one-line struct literals and let-else guards.
+# Max heuristics stops rustfmt from exploding them into 5-line blocks; everything
+# else is stock rustfmt.
+use_small_heuristics = "Max"
+single_line_let_else_max_width = 100

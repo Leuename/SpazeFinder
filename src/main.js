@@ -6,10 +6,7 @@ let rootPath = "";
 const expanded = new Set();
 const $ = (id) => document.getElementById(id);
 
-// theme: saved preference wins, otherwise follow the OS
-const savedTheme = localStorage.getItem("theme");
-const osDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-document.documentElement.dataset.theme = savedTheme || (osDark ? "dark" : "light");
+// theme is applied in index.html's head script (pre-paint); this only toggles it
 $("theme-toggle").onclick = () => {
   const next = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
   document.documentElement.dataset.theme = next;
@@ -25,11 +22,22 @@ function fmt(bytes) {
 }
 
 function show(id) {
-  for (const s of ["drives", "progress", "main"]) $(s).hidden = s !== id;
+  for (const s of ["splash", "drives", "progress", "main"]) $(s).hidden = s !== id;
 }
+
+// Drive enumeration takes ~20ms, so without a floor the splash is gone before the
+// eye registers it. ponytail: 500ms is a taste value — lower it if launch feels slow.
+const MIN_SPLASH_MS = 500;
+const bootAt = Date.now();
+let firstInit = true;
 
 async function init() {
   const drives = await invoke("list_drives");
+  if (firstInit) {
+    firstInit = false; // only the launch splash waits; "Change drive" is instant
+    const left = MIN_SPLASH_MS - (Date.now() - bootAt);
+    if (left > 0) await new Promise((r) => setTimeout(r, left));
+  }
   $("switch-drive").hidden = drives.length === 1;
   if (drives.length === 1) return startScan(drives[0].letter + "\\");
   const list = document.querySelector(".drive-list");

@@ -1,5 +1,6 @@
 use rayon::prelude::*;
 use serde::Serialize;
+use std::cmp::Reverse;
 use std::fs;
 use std::path::Path;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -54,7 +55,7 @@ pub fn scan(path: &Path, prog: &Progress) -> Node {
             }
         })
         .collect();
-    children.sort_by(|a, b| b.size.cmp(&a.size));
+    children.sort_by_key(|c| Reverse(c.size));
     let size = children.iter().map(|c| c.size).sum();
     Node { name, size, is_dir: true, children }
 }
@@ -62,11 +63,9 @@ pub fn scan(path: &Path, prog: &Progress) -> Node {
 pub fn find_node<'a>(node: &'a Node, rel: &[String]) -> Option<&'a Node> {
     match rel.split_first() {
         None => Some(node),
-        Some((head, tail)) => node
-            .children
-            .iter()
-            .find(|c| c.name == *head)
-            .and_then(|c| find_node(c, tail)),
+        Some((head, tail)) => {
+            node.children.iter().find(|c| c.name == *head).and_then(|c| find_node(c, tail))
+        }
     }
 }
 
@@ -101,7 +100,7 @@ pub fn insert_node(node: &mut Node, dest_rel: &[String], new: Node) -> bool {
     match dest_rel.split_first() {
         None => {
             node.children.push(new);
-            node.children.sort_by(|a, b| b.size.cmp(&a.size));
+            node.children.sort_by_key(|c| Reverse(c.size));
             true
         }
         Some((head, tail)) => {

@@ -43,3 +43,48 @@ Frontend assets (`src/`) are embedded into the binary at compile time. After JS/
 - [Tauri 2](https://tauri.app) — Rust backend, WebView2 frontend
 - Rust: `rayon` (parallel scan), `trash` (Recycle Bin), `windows-sys` (drive enumeration)
 - Frontend: vanilla HTML/CSS/JS, no build step, no dependencies
+
+## Privacy
+
+SpazeFinder processes filesystem information locally on your device. It makes no
+network requests. Official releases include no telemetry, analytics, advertising,
+crash reporting, accounts, or cloud scan storage, and write no scan history to
+disk. The only thing stored between sessions is your theme preference.
+
+The scanner reads directory listings and file sizes — it does not open or read
+file contents.
+
+See [PRIVACY.md](PRIVACY.md).
+
+## Responsible Use
+
+Use SpazeFinder only on devices and filesystems that you own or are authorized to
+access.
+
+Review files carefully before moving, renaming, or deleting them, and keep backups
+of important data. Delete sends items to the Recycle Bin; Recycle Bin recovery is
+not guaranteed.
+
+Release builds run elevated — see [DISCLAIMER.md](DISCLAIMER.md).
+
+## Security
+
+Report vulnerabilities privately per [SECURITY.md](SECURITY.md). Do not include
+real personal files or credentials in a report.
+
+## Third-Party Licenses
+
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+## Official Releases
+
+Official builds are published only at
+<https://github.com/Leuename/SpazeFinder/releases>. Verify downloads against the
+published SHA-256 checksums.
+
+## License
+
+Copyright © 2026 Emmanuel Millave.
+
+SpazeFinder is free and open-source software licensed under the MIT License.
+See [LICENSE](LICENSE) for details.
